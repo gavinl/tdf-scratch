@@ -21,22 +21,14 @@ namespace ConsoleApp.TDF
             Log.Information("Main()");
 
             var head = new BufferBlock<int>();
-            var workActionBlock = new ActionBlock<object>(i =>
+            var workActionBlock = new ActionBlock<int>(i =>
             {
                 Log.Information("ActionBlock({i})", i);
-                Thread.Sleep(TimeSpan.FromSeconds(2));
+                Thread.Sleep(TimeSpan.FromSeconds(1));
             }, ExOpts);
 
-            var transformBlock = new TransformBlock<int, string>(Transform, new ExecutionDataflowBlockOptions
-            {
-                BoundedCapacity = 1
-            });
-
-            //head.LinkTo(workActionBlock);
-            head.LinkTo(transformBlock);
-            transformBlock.LinkTo(workActionBlock);
-            head.Completion.ContinueWith(t => transformBlock.Complete());
-            transformBlock.Completion.ContinueWith(t => workActionBlock.Complete());
+            head.LinkTo(workActionBlock);
+            head.Completion.ContinueWith(t => workActionBlock.Complete());
 
             var sw = new Stopwatch();
             sw.Start();
@@ -53,13 +45,6 @@ namespace ConsoleApp.TDF
 
             Log.Information("Finished in {elapsed}", sw.Elapsed);
             Log.CloseAndFlush();
-        }
-
-        private static string Transform(int i)
-        {
-            Log.Information("Transform({i}) => {result}", i, i.ToString());
-            Thread.Sleep(TimeSpan.FromSeconds(1));
-            return i.ToString();
         }
 
         #region Tunables
