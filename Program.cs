@@ -25,7 +25,7 @@ namespace ConsoleApp.TDF
             {
                 Log.Information("ActionBlock({i})", i);
                 Thread.Sleep(TimeSpan.FromSeconds(1));
-            }, ExOpts);
+            });
 
             head.LinkTo(workActionBlock);
             head.Completion.ContinueWith(t => workActionBlock.Complete());
@@ -46,17 +46,5 @@ namespace ConsoleApp.TDF
             Log.Information("Finished in {elapsed}", sw.Elapsed);
             Log.CloseAndFlush();
         }
-
-        #region Tunables
-
-        private static ExecutionDataflowBlockOptions ExOpts =>
-            new ExecutionDataflowBlockOptions
-            {
-                MaxDegreeOfParallelism = 1,
-                MaxMessagesPerTask = 1,
-                BoundedCapacity = 100
-            };
-
-        #endregion
     }
 }
