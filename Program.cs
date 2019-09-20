@@ -36,7 +36,6 @@ namespace ConsoleApp.TDF
             {
                 head.SendAsync(i);
             }
-
             head.Complete();
 
             Task.WaitAll(head.Completion, workActionBlock.Completion);
