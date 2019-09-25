@@ -14,7 +14,6 @@ namespace ConsoleApp.TDF
         {
             Log.Logger = new LoggerConfiguration()
                 .Enrich.WithThreadId()
-                .Enrich.WithThreadName()
                 .WriteTo.Console(outputTemplate: "{Timestamp:HH:mm:ss} {ThreadId} {Message}{NewLine}")
                 .CreateLogger();
 
@@ -25,11 +24,14 @@ namespace ConsoleApp.TDF
             {
                 Log.Information("ActionBlock({i})", i);
                 Thread.Sleep(TimeSpan.FromSeconds(2));
-            }, ExOpts);
+            }, new ExecutionDataflowBlockOptions
+            {
+                MaxDegreeOfParallelism = 2
+            });
 
             var transformBlock = new TransformBlock<int, string>(Transform, new ExecutionDataflowBlockOptions
             {
-                BoundedCapacity = 1
+                //MaxDegreeOfParallelism = 1
             });
 
             //head.LinkTo(workActionBlock);
@@ -42,6 +44,7 @@ namespace ConsoleApp.TDF
             sw.Start();
             foreach (var i in Enumerable.Range(0, 10))
             {
+                //head.Post(i);
                 head.SendAsync(i);
             }
 
@@ -61,17 +64,5 @@ namespace ConsoleApp.TDF
             Thread.Sleep(TimeSpan.FromSeconds(1));
             return i.ToString();
         }
-
-        #region Tunables
-
-        private static ExecutionDataflowBlockOptions ExOpts =>
-            new ExecutionDataflowBlockOptions
-            {
-                MaxDegreeOfParallelism = 1,
-                MaxMessagesPerTask = 1,
-                BoundedCapacity = 100
-            };
-
-        #endregion
     }
 }
