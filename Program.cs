@@ -10,47 +10,50 @@ namespace ConsoleApp.TDF
 {
     internal class Program
     {
-        private static void Main()
+        private static async Task Main()
         {
             Log.Logger = new LoggerConfiguration()
                 .Enrich.WithThreadId()
                 .WriteTo.Console(outputTemplate: "{Timestamp:HH:mm:ss} {ThreadId} {Message}{NewLine}")
                 .CreateLogger();
 
-            Log.Information("Main()");
+            Log.Information("Begin");
 
             var head = new BufferBlock<int>();
-            var workActionBlock = new ActionBlock<object>(i =>
+            var actionBlock = new ActionBlock<object>(i =>
             {
-                Log.Information("ActionBlock({i})", i);
-                Thread.Sleep(TimeSpan.FromSeconds(2));
+                Log.Information("ActionBlock({i}) starts", i);
+                Thread.Sleep(TimeSpan.FromSeconds(1));
+                Log.Information("ActionBlock({i}) finished", i);
             }, new ExecutionDataflowBlockOptions
             {
-                MaxDegreeOfParallelism = 2
+                MaxDegreeOfParallelism = 1
             });
 
             var transformBlock = new TransformBlock<int, string>(Transform, new ExecutionDataflowBlockOptions
             {
-                //MaxDegreeOfParallelism = 1
+                MaxDegreeOfParallelism = 2
             });
 
             //head.LinkTo(workActionBlock);
             head.LinkTo(transformBlock);
-            transformBlock.LinkTo(workActionBlock);
+            transformBlock.LinkTo(actionBlock);
+            Log.Information("head => transformBlock => actionBlock");
+
             head.Completion.ContinueWith(t => transformBlock.Complete());
-            transformBlock.Completion.ContinueWith(t => workActionBlock.Complete());
+            transformBlock.Completion.ContinueWith(t => actionBlock.Complete());
 
             var sw = new Stopwatch();
             sw.Start();
             foreach (var i in Enumerable.Range(0, 10))
             {
-                //head.Post(i);
-                head.SendAsync(i);
+                head.Post(i);
+                //await head.SendAsync(i);
             }
 
             head.Complete();
-
-            Task.WaitAll(head.Completion, workActionBlock.Completion);
+            await head.Completion;
+            await actionBlock.Completion;
 
             sw.Stop();
 
@@ -60,9 +63,12 @@ namespace ConsoleApp.TDF
 
         private static string Transform(int i)
         {
-            Log.Information("Transform({i}) => {result}", i, i.ToString());
+            Log.Information("Transform({i}) starts work on {i}", i, i);
+            var result = i.ToString(); 
             Thread.Sleep(TimeSpan.FromSeconds(1));
-            return i.ToString();
+            
+            Log.Information("Transform({i}) finished work on {i} with result {result}", i, i, result);
+            return result;
         }
     }
 }
